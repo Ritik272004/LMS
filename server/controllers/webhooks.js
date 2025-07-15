@@ -7,9 +7,9 @@ export const clerkWebhooks = async(req,res)=>{
     try {
        const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET)
        await whook.verify(JSON.stringify(req.body) , {
-        "svix-id" : req.headers("svix-id"),
-        "svix-timestamp": req.headers("svix-timestamp"),
-        "svix-signature" : req.headers("svix-signature")
+        "svix-id" : req.headers["svix-id"],
+        "svix-timestamp": req.headers["svix-timestamp"],
+        "svix-signature" : req.headers["svix-signature"]
        })
 
        const {data , type} = req.body;
@@ -18,9 +18,9 @@ export const clerkWebhooks = async(req,res)=>{
           case 'user.created' : {
                 const userData = {
                     _id: data.id,
-                    email:data.email_address[0].email_address,
-                    name:data.fisrt_name + " " + data.last_name,
-                    imageUrl : data.imageUrl,
+                    email:data.email_addresses[0].email_address,
+                    name:data.first_name + " " + data.last_name,
+                    imageUrl : data.image_url,
             }
             await User.create(userData)
             res.json({})
