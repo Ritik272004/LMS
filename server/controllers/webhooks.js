@@ -1,5 +1,8 @@
 import {Webhook} from "svix";
 import User from "../models/user.js"
+import Stripe from "stripe";
+import { Purchase } from "../models/Purchase.js";
+import Course from "../models/Course.js";
 
 // API Controller Function to manage clerk user with database.
 
@@ -53,6 +56,82 @@ export const clerkWebhooks = async(req,res)=>{
     }
 }
 
+// Setup Stripe Webhook to verify payment
+// http://docs.stripe.com/webooks(Go-to :Home/Developer resource/Event destination/webhook endpoint) : Use this documentation to create stripe webook 
+
+const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY)
+
+export const stripeWebhooks = async (req,res)=>{
+  const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    event = Stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  }
+  catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+   // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      {
+      const paymentIntent = event.data.object;
+      const paymentId = paymentIntent.id;
+
+      const session = await stripeInstance.checkout.sessions.list({
+        payment_intent : paymentId,    
+      })
+
+      const {purchaseId} = session.data[0].metadata;
+
+      const purchaseData = await Purchase.findById(purchaseId);
+      const userData = await User.findById(purchaseData.userId);
+      const courseData = await Course.findById(purchaseData.courseId.toString());
+
+      courseData.enrolledStudents.push(userData)
+      await courseData.save();
+
+      userData.enrolledCourses.push(courseData);
+      await userData.save()
+
+      purchaseData.status = 'completed'
+      await purchaseData.save()
+       
+      break;
+    
+    }
+    case 'payment_intent.payment_failed':
+      {
+      const paymentIntent = event.data.object;
+      const paymentId = paymentIntent.id;
+
+      const session = await stripeInstance.checkout.sessions.list({
+        payment_intent : paymentId,    
+      })
+
+      const {purchaseId} = session.data[0].metadata;
+    
+      const purchaseData = await Purchase.findById(purchaseId)
+
+      purchaseData.status = 'failed'
+      await purchaseData.save()
+
+    }
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a response to acknowledge receipt of the event
+  response.json({received: true});
+
+
+}
+
+
+
 /*
 Webhook is a way for one server(like clerk) to send real-time data to another server(like your backend) , when an event occurs like user being created , updated , deleted.
 svix is library used to verify the authenticity of webhook(clerk uses svix under the hood to send webhooks)
@@ -73,4 +152,9 @@ This process is called signature verification.
 
 clerk is user authentication and management service designed for modern web .
 It helps you to add login , signup and user profile features to your app without building everything from scratch. 
+
+http://docs.stripe.com/webooks : Use this documentation to create stripe webook 
+
+
+
  */

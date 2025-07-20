@@ -53,7 +53,7 @@ import express from 'express'
 import cors from 'cors'
 import 'dotenv/config'
 import connectDB from './configs/mongodb.js'
-import { clerkWebhooks } from './controllers/webhooks.js'
+import { clerkWebhooks, stripeWebhooks } from './controllers/webhooks.js'
 import educatorRouter from './routes/educatorRouter.js'
 import { clerkMiddleware } from '@clerk/express'
 import connectCloudinary from './configs/cloudinary.js'
@@ -85,6 +85,8 @@ If normal user hit the above endpoint with token then it become educator
 app.use('/api/user/' , express.json() , userRouter)
 
 app.use('/api/course',express.json() , courseRouter)
+
+app.post('/stripe',express.raw({type : 'application/json'}) , stripeWebhooks) // express.raw() is used because Raw body needed to verify Stripe signature.
 
 // Port
 const PORT = process.env.PORT || 5000

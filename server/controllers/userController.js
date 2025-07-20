@@ -97,5 +97,19 @@ export const purchaseCourse = async (req,res)=>{
     } catch (error) {
         res.json({success:false , message: error.message})
     }
-    // After Purchasing verify the payment and update the status of purchase in database.
 }
+
+// After Purchasing verify the payment and update the status of purchase , userData(enrolledCourses) , courseData(enrolledStudents) in database.
+
+
+
+/*
+Stripe Payment Flow : 
+1. Frontend calls : post /purchase-course
+    Backend create stripe checkout session and return session.url
+2. Frontend redirect to the Stripe Checkout Page
+3. User completes payment
+4. Stripe redirect Frontend to success_url(eg: /loading/my-enrollments)
+5.Then you call your backend /verify-payment
+
+*/
