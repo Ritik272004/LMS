@@ -54,20 +54,37 @@ import cors from 'cors'
 import 'dotenv/config'
 import connectDB from './configs/mongodb.js'
 import { clerkWebhooks } from './controllers/webhooks.js'
+import educatorRouter from './routes/educatorRouter.js'
+import { clerkMiddleware } from '@clerk/express'
+import connectCloudinary from './configs/cloudinary.js'
+import courseRouter from './routes/courseRoute.js'
+import userRouter from './routes/userRoutes.js'
 
 const app = express()
 
 // Connect to Database
 
 await connectDB()
+await connectCloudinary() 
 
 // Middlewares
 app.use(cors()) // to connect backend to any other domain
+app.use(clerkMiddleware()) /*
+clerkMiddleware() runs before your route is processed , It looks for Bearer token in Authorization header and verifies it with clerk server . If valid then it attach info(like userId , sessionId ) to req.auth
+*/
 
 // Routes
 app.get('/' ,(req,res)=> res.send('API  Working fine'))
 app.post('/clerk' , express.json() , clerkWebhooks)
 /* Now , we have to upload our project on github then we publish our backend project using versal . After that we get backend URL , using this URL we can generate webhook secret from clerk dashboard   */
+app.use('/api/educator' , express.json() , educatorRouter)
+/* for the above route authentication token is needed because it uses req.auth(contain userId , sessionId) which is created by clerk Middleware 
+* and it works only if clerk can verify it and verification is done using Authentication Token (JWT) .
+If normal user hit the above endpoint with token then it become educator
+ */
+app.use('/api/user/' , express.json() , userRouter)
+
+app.use('/api/course',express.json() , courseRouter)
 
 // Port
 const PORT = process.env.PORT || 5000
