@@ -105,11 +105,26 @@ export const purchaseCourse = async (req,res)=>{
 
 /*
 Stripe Payment Flow : 
-1. Frontend calls : post /purchase-course
-    Backend create stripe checkout session and return session.url
-2. Frontend redirect to the Stripe Checkout Page
-3. User completes payment
-4. Stripe redirect Frontend to success_url(eg: /loading/my-enrollments)
-5.Then you call your backend /verify-payment
+1. User starts purchase
+. User clicks "Buy Now" on your frontend
+. Your Frontend calls:
+    post /api/user/purchase
+. Your backend create stripe checkout session and return with url .
+. res.json({ session_url: session.url });
+
+2. User redirect to Stripe checkout page
+. Strioe handle payment UI securely.
+. User fills in card details , and completes the payment.
+
+3. Stripe redirects user to secure_url
+You have configured this during session creation
+success_url: `${origin}/loading/my-enrollments?session_id={CHECKOUT_SESSION_ID}`,
+
+4. Stripe Calls Your Webhook Automatically
+POST /stripe
+with:
+Headers like: stripe-signature
+Raw JSON body with event data (e.g., payment_intent.succeeded)
+
 
 */
