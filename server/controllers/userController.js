@@ -2,6 +2,7 @@ import User from '../models/user.js'
 import Course from '../models/Course.js'
 import { Purchase } from '../models/Purchase.js';
 import Stripe from 'stripe';
+import { CourseProgress } from '../models/courseProgess.js';
 
 
 // get user data
@@ -99,7 +100,86 @@ export const purchaseCourse = async (req,res)=>{
     }
 }
 
-// After Purchasing verify the payment and update the status of purchase , userData(enrolledCourses) , courseData(enrolledStudents) in database.
+// Update User Course Progress
+
+export const updateCourseProgess = async (req,res)=>{
+    try {
+        const userId = req.auth.userId
+        const {courseId , lectureId} = req.body
+        const progressData = await CourseProgress.findOne({userId , courseId}) // findOne() method finds the first progress document  where:/* userId matches the provided req.auth.userId, and courseId matches the one sent in req.body.*/ and it return only first single document not an array
+
+        if(progressData){
+            if(progressData.lectureCompleted.includes(lectureId)){
+                return res.json({success:true , message : 'Lecture Already Completed'})
+            }
+
+        progressData.lectureCompleted.push(lectureId)
+        await progressData.save()
+        }
+
+        else{
+            await CourseProgress.create({
+                userId,
+                courseId,
+                lectureCompleted:[lectureId]
+            })
+        }
+        res.json({success:true , message: 'Progress Updated'})
+    } 
+    catch (error) {
+       res.json({success:false , message : error.message}) 
+    }
+}
+
+// get User Course Progress
+
+export const getUserCourseProgress = async (req,res)=>{
+    try {
+        const userId = req.auth.userId
+        const {courseId} = req.body
+        const progressData = await CourseProgress.findOne({userId , courseId})
+        res.json({success:true , progressData})
+    } catch (error) {
+        res.json({success:false , message : error.message})
+    }
+}
+
+// Add User Ratings to Course
+
+export const addUserRating = async (req,res)=>{
+    const userId = req.auth.userId
+    const {courseId , rating} = req.body
+
+    if(!courseId || !userId || !rating || rating < 1 || rating > 5 ){
+        return res.json({success:false , message : 'Invalid Details'})
+    }
+    try {
+        const course = await Course.findById(courseId);
+
+        if(!course){
+            return res.json({success:false , message: 'Course Not Found.'})
+        }
+
+        const user = await User.findById(userId);
+
+        if(!user || !user.enrolledCourses.includes(courseId)){
+            return res.json({success:false , message: 'User has not purchased this course.'});          
+        }
+
+        const existingRatingIndex = course.courseRatings.findIndex(r => r.userId === userId); // findIndex(...) method searches in courseRating array and  return the index(position) of the first element that satisfy given condition ie. tha first rating given by specific user
+           if(existingRatingIndex > -1){
+                course.courseRatings[existingRatingIndex].rating = rating
+           } else{
+                course.courseRatings.push(userId , rating)
+           }
+        await course.save()
+
+        return res.json({success:true , message: 'Rating Added'})
+
+    } catch (error) {
+       return res.json({success:false , message:error.message})
+    }
+}
 
 
 

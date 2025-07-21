@@ -56,6 +56,7 @@ export const clerkWebhooks = async(req,res)=>{
     }
 }
 
+// After Purchasing verify the payment and update the status of purchase , userData(enrolledCourses) , courseData(enrolledStudents) in database.
 // Setup Stripe Webhook to verify payment
 // http://docs.stripe.com/webooks(Go-to :Home/Developer resource/Event destination/webhook endpoint) : Use this documentation to create stripe webook 
 
