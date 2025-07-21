@@ -1,7 +1,7 @@
 import {Webhook} from "svix";
 import User from "../models/user.js"
 import Stripe from "stripe";
-import { Purchase } from "../models/Purchase.js";
+import {Purchase}  from "../models/Purchase.js";
 import Course from "../models/Course.js";
 
 // API Controller Function to manage clerk user with database.
@@ -60,59 +60,73 @@ export const clerkWebhooks = async(req,res)=>{
 // http://docs.stripe.com/webooks(Go-to :Home/Developer resource/Event destination/webhook endpoint) : Use this documentation to create stripe webook 
 
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-export const stripeWebhooks = async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+export const stripeWebhooks = async (request,response)=>{
+  const sig = request.headers['stripe-signature'];
+
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error('❌ Stripe webhook signature failed:', err.message)
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    event = Stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  }
+  catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const { purchaseId } = session.metadata;
+   // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':{
+      const paymentIntent = event.data.object;
+      const paymentIntentId = paymentIntent.id;
 
-    const purchaseData = await Purchase.findById(purchaseId);
-    const userData = await User.findById(purchaseData.userId);
-    const courseData = await Course.findById(purchaseData.courseId);
+      const session = await stripeInstance.checkout.sessions.create.list({
+        payment_intent : paymentIntentId
+      })
+      const {purchaseId} = session.data[0].metadata
 
-    courseData.enrolledStudents.push(userData._id);
-    await courseData.save();
+      const purchaseData = await Purchase.findById(purchaseId)
 
-    userData.enrolledCourses.push(courseData._id);
-    await userData.save();
+      const userData = await User.findById(purchaseData.userId)
 
-    purchaseData.status = 'completed';
-    await purchaseData.save();
+      const courseData = await Course.findById(purchaseData.courseId.toString())
 
-    console.log('✅ Payment success: DB updated');
-  } else if (event.type === 'payment_intent.payment_failed') {
-    const paymentIntent = event.data.object;
-    const paymentIntentId = paymentIntent.id;
+      courseData.enrolledStudents.push(userData)
+      await courseData.save()
 
-    const sessionList = await stripe.checkout.sessions.list({
-      payment_intent: paymentIntentId,
-    });
+      userData.enrolledCourses.push(courseData._id)
+      await userData.save()
 
-    const session = sessionList.data[0];
-    const { purchaseId } = session.metadata;
+      purchaseData.status = 'completed'
+      await purchaseData.save()
 
-    const purchaseData = await Purchase.findById(purchaseId);
-    purchaseData.status = 'failed';
-    await purchaseData.save();
+     break; 
+    }
+         
+    case 'payment_method.attached':{
+      const paymentIntent = event.data.object;
+      const paymentIntentId = paymentIntent.id;
 
-    console.log('❌ Payment failed: Status updated');
-  } else {
-     // ... handle other event types
-    console.log(`Unhandled event type: ${event.type}`);
+      const session = await stripeInstance.checkout.sessions.create.list({
+        payment_intent : paymentIntentId
+      })
+      const {purchaseId} = session.data[0].metadata
+
+      const purchaseData = await Purchase.findById(purchaseId)
+
+      purchaseData.status = 'failed'
+      await purchaseData.save()
+
+      break;
+    }
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
   }
-    // Return a response to acknowledge receipt of the event
-  res.status(200).json({ received: true });
+
+  // Return a response to acknowledge receipt of the event
+  response.json({received: true});
+
 }
 
 
