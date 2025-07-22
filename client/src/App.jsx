@@ -23,7 +23,7 @@ const App = () => {
 
   return (
     <div className='text-default min-h-screen bg-white'>
-      <ToastContainer/>
+      <ToastContainer/>  
       {!isEducatorRoute && <Navbar /> }
 
       <Routes>
@@ -48,5 +48,7 @@ const App = () => {
 }
 
 export default App
+
+// With <ToastContainer/> we can use toast notification in any component
 
 

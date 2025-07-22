@@ -26,8 +26,18 @@ export const AppContextProvider = (props)=>{
 
     // fetch all courses
     const fetchAllCourses = async ()=>{
+        try {
+         const {data} =  await axios.get(backendUrl + '/api/course/all');
 
-        setAllCourses(dummyCourses)
+         if(data.success){
+            setAllCourses(data.courses)
+         }else{
+            toast.error(data.message)
+         }
+
+        } catch (error) {
+            toast.error(error.message)
+        }
     }
 
     // Fetch User Enrolled Courses
