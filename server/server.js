@@ -1,4 +1,16 @@
  /*
+
+ Axios Library is used to make HTTP request
+ | Axios Method     | HTTP Method | Used For                       
+| axios.get()    | GET         | Fetching data                 
+| axios.post()   | POST        | Sending new data (e.g., form) 
+| axios.put()    | PUT         | Updating existing data        
+| axios.delete() | DELETE      | Deleting data 
+
+The react-toastify package is used in React apps to show toast notifications- small , non-blocking popup messages 
+- to give user quick feedback about actions (like success , error , warning etc.)
+
+ 
  What is the use of Cors Package
  First, understand the problem that CORS solves:
  Imagine:
@@ -82,7 +94,7 @@ app.use('/api/educator' , express.json() , educatorRouter)
 * and it works only if clerk can verify it and verification is done using Authentication Token (JWT) .
 If normal user hit the above endpoint with token then it become educator
  */
-app.use('/api/user/' , express.json() , userRouter)
+app.use('/api/user' , express.json() , userRouter)
 
 app.use('/api/course',express.json() , courseRouter)
 

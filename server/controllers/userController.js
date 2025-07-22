@@ -48,6 +48,8 @@ export const purchaseCourse = async (req,res)=>{
         // req.headers.origin is used in CORS(Cross origin Resource Sharing) checks and Creating stripe checkout sessions (e.g : for success_url , cancle_url).
 
         const userId = req.auth.userId;
+        // console.log('UserID:', req.auth);
+
         const userData = await User.findById(userId) 
         
         const courseData = await Course.findById(courseId)

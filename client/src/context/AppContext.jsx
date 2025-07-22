@@ -3,10 +3,15 @@ import { dummyCourses } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import humaniseDuration from "humanise-duration"
 import {useAuth , useUser} from "@clerk/clerk-react"
+import axios from 'axios'
+import { toast } from "react-toastify";
+
 
 export const AppContext = createContext()
 
 export const AppContextProvider = (props)=>{
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL
 
     const currency = import.meta.env.VITE_CURRENCY
 
@@ -21,6 +26,7 @@ export const AppContextProvider = (props)=>{
 
     // fetch all courses
     const fetchAllCourses = async ()=>{
+
         setAllCourses(dummyCourses)
     }
 
