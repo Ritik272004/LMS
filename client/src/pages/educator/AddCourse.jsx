@@ -1,13 +1,20 @@
-import React , {useEffect, useRef , useState} from 'react'
+import React , {useContext, useEffect, useRef , useState} from 'react'
 import uniqid from 'uniqid' // used for assigning unique Id for each course
 import Quill from 'quill' // Quill(a rich text editor) is used for creating and editing text content with rich formatting options in modern web.
 import { assets } from '../../assets/assets';
+import { AppContext } from '../../context/AppContext';
+import axios from "axios";
+import { toast } from "react-toastify";
+
 
 const AddCourse = () => {
 
   /* useRef Hook is React is used to create mutable reference(- direct pointer to something) that persists across renders and does not cause re-renders when updated.
   It is typically used to reference DOM Elements and external Libraries like Quill Editor  , because everytime you use Quill you don't want to re-render the component
   So , that's by we use useRef Hook to store and access Quill instance without re-rendering. */
+
+  const {backendUrl , getToken} = useContext(AppContext)
+
   const quillRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -92,8 +99,43 @@ const AddCourse = () => {
     });
   };
 
-  const handleSubmit = async ()=>{
-    e.preventDefault();
+  const handleSubmit = async (e)=>{
+    try {
+      e.preventDefault()
+      if(!image){
+        toast.error('Thumbnail not selected')
+      }
+
+      const courseData = {
+        courseTitle,
+        courseDescription: quillRef.current.root.innerHTML,
+        coursePrice : Number(coursePrice),
+        discount : Number(discount),
+        courseContent : chapters
+      }
+
+      const formData = new FormData()
+      formData.append('courseData' , JSON.stringify(courseData)) // if we want to send data to backend in the form of multipart/formData then we use FormData in react.
+      formData.append('imageFile' , image)
+
+      const token = await getToken();
+
+      const {data} = await axios.post(backendUrl + '/api/educator/add-course' , formData , {headers : {Authorization : `Bearer ${token}`}})
+
+      if(data.success){
+        toast.success(data.message);
+        setCourseTitle('')
+        setCoursePrice(0)
+        setDiscount(0)
+        setImage(null)
+        setChapters([])
+        quillRef.current.root.innerHTML = ""
+      }else{
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   useEffect(()=>{
@@ -109,7 +151,7 @@ const AddCourse = () => {
   return (
     <div className='h-screen overflow-scroll flex flex-col items-start
     justify-between md:p-8 mb:pb-0 p-4 pt-8 pb-0'>
-        <form onSubmit={()=> handleSubmit()} action="" className='flex flex-col gap-4 max-w-md w-full text-gray-500'>
+        <form onSubmit={(e)=> handleSubmit(e)} action="" className='flex flex-col gap-4 max-w-md w-full text-gray-500'>
           <div className='flex flex-col gap-1'>
             <p>Course Title</p>
             <input onChange={e => setCourseTitle(e.target.value)} value={courseTitle} type="text" placeholder='Type here' className='outline-none md:py-2.5 py-2 

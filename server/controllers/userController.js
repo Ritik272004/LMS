@@ -60,7 +60,7 @@ export const purchaseCourse = async (req,res)=>{
         const purchaseData = {
             courseId : courseData._id,
             userId,
-            amount : (courseData.coursePrice - courseData.discount * courseData.coursePrice /100).toFixed(2), // toFixed(2) -> Converts number to a string with exactly 2 decimals(e.g: "3.10")
+            amount : Number((courseData.coursePrice - courseData.discount * courseData.coursePrice /100).toFixed(2)), // toFixed(2) -> Converts number to a string with exactly 2 decimals(e.g: "3.10")
         }
 
         const newPurchase = await Purchase.create(purchaseData)
@@ -79,7 +79,7 @@ export const purchaseCourse = async (req,res)=>{
                 product_data:{
                     name: courseData.courseTitle
                 },
-                unit_amount: Math.floor(newPurchase.amount) * 100
+                unit_amount: Math.round(newPurchase.amount) * 100
             },
             quantity : 1
         }]
@@ -171,7 +171,7 @@ export const addUserRating = async (req,res)=>{
            if(existingRatingIndex > -1){
                 course.courseRatings[existingRatingIndex].rating = rating
            } else{
-                course.courseRatings.push(userId , rating)
+                course.courseRatings.push({userId , rating})
            }
         await course.save()
 
